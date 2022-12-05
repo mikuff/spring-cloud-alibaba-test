@@ -26,6 +26,10 @@ spring:
           uri: lb://chain-tx
           predicates:
             - Path=/chain-tx/**
+        - id: mq-db
+          uri: lb://mq-db
+          predicates:
+            - Path=/mq-db/**
   sentinel:
     transport:
       dashboard: localhost:8070

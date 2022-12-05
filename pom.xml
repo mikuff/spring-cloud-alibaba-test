@@ -24,6 +24,7 @@
         <module>common</module>
         <module>gateway</module>
         <module>chain_tx</module>
+        <module>mq-db</module>
     </modules>
 
     <properties>

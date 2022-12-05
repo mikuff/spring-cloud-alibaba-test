@@ -51,7 +51,7 @@ public class ChainTxInfoServiceImpl implements ChainTxInfoService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class,transactionManager = "dsOneTransactionManager")
     public Integer insertDbOneError(ChainInfoDTO dto) {
         ChainTxInfoEntity insert = new ChainTxInfoEntity();
         BeanUtils.copyProperties(dto, insert);
@@ -60,7 +60,7 @@ public class ChainTxInfoServiceImpl implements ChainTxInfoService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class,transactionManager = "dsTwoTransactionManager")
     public Integer insertDbTwoError(ChainInfoDTO dto) {
         ChainTxInfoEntity insert1 = new ChainTxInfoEntity();
         ChainTxInfoEntity insert2 = new ChainTxInfoEntity();
@@ -90,12 +90,24 @@ public class ChainTxInfoServiceImpl implements ChainTxInfoService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class,transactionManager = "chainedTransactionManager")
     public Integer insertAllDbError(ChainInfoDTO dto) {
-        ChainTxInfoEntity insert = new ChainTxInfoEntity();
-        BeanUtils.copyProperties(dto, insert);
-        Integer ret1 = dsOneChainTxInfoMapper.insert(insert);
-        Integer ret2 = dsTwoChainTxInfoMapper.insert(insert);
+        ChainTxInfoEntity insert1 = new ChainTxInfoEntity();
+        ChainTxInfoEntity insert2 = new ChainTxInfoEntity();
+
+        BeanUtils.copyProperties(dto, insert1);
+        BeanUtils.copyProperties(dto, insert2);
+
+        insert1.setName(insert1.getName()+"_dsOne");
+        insert2.setName(insert2.getName()+"_dsTwo");
+
+        System.out.println("dsOne ======================================================================================");
+        dsOneChainTxInfoMapper.insert(insert1);
+
+        System.out.println("dsTwo ======================================================================================");
+        dsTwoChainTxInfoMapper.insert(insert2);
+
+        System.out.println("throw exception ======================================================================================");
         throw new RuntimeException();
     }
 }
