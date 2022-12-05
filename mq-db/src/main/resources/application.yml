@@ -1,0 +1,45 @@
+server:
+  port: 8005
+
+spring:
+  application:
+    name: mq-db
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+  sentinel:
+    transport:
+      dashboard: localhost:8070
+      port: 9999
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    username: root
+    password: 123
+    url: jdbc:mysql://192.168.111.10:3306/test_tx
+  rabbitmq:
+    host: 192.168.111.15
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+
+product-service:
+  ribbon:
+    NFLoadBalancerRuleClassName: com.share.shareconter.configure.Nacosweight
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.lwl.mqdb.mapper: TRACE
+    com.atomikos: INFO
+    org.springframework.transaction: TRACE
+    org.springframework.jdbc: TRACE
+    org.springframework.amqp: DEBUG
+    javax.transaction: TRACE
+    com.mysql.jdbc: TRACE
+    org.apache.ibatis: TRACE
+    com.rabbitmq: DEBUG
