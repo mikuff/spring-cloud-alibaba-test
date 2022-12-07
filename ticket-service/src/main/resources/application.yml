@@ -1,10 +1,8 @@
 server:
-  port: 8002
-
+  port: 8007
 spring:
   application:
-    name: user-service
-
+    name: ticket-service
   cloud:
     nacos:
       discovery:
@@ -31,13 +29,13 @@ spring:
         concurrency: 5
         max-concurrency: 10
 
-product-service:
-  ribbon:
-    NFLoadBalancerRuleClassName: com.share.shareconter.configure.Nacosweight
-
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+product-service:
+  ribbon:
+    NFLoadBalancerRuleClassName: com.share.shareconter.configure.Nacosweight
 
 logging:
   level:

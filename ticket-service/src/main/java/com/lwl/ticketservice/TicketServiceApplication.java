@@ -1,4 +1,4 @@
-package com.lwl.orderservice;
+package com.lwl.ticketservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,10 +10,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableTransactionManagement
-public class OrderServiceApplication {
+public class TicketServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(OrderServiceApplication.class, args);
+        SpringApplication.run(TicketServiceApplication.class, args);
     }
 
 }

@@ -20,6 +20,7 @@
     <modules>
         <module>user-service</module>
         <module>order-service</module>
+        <module>ticket-service</module>
         <module>custom-test</module>
         <module>common</module>
         <module>gateway</module>
