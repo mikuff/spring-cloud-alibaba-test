@@ -4,4 +4,7 @@ public interface AtomikosService {
     void insertOne();
 
     void insertTwo();
+
+
+    void insertAll();
 }

@@ -5,6 +5,7 @@ import com.atomikos.jdbc.AtomikosDataSourceBean;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,8 @@ import javax.sql.DataSource;
 
 
 @Configuration
+@MapperScan(basePackages = {"com.lwl.atomikos.mapper.dsone"}, sqlSessionFactoryRef = "dsOneSqlSessionFactory")
+@MapperScan(basePackages = {"com.lwl.atomikos.mapper.dstwo"}, sqlSessionFactoryRef = "dsTwoSqlSessionFactory")
 public class DbConfiguration {
 
     // 数据源dsOne
@@ -35,7 +38,7 @@ public class DbConfiguration {
 
         // druid连接池数据源
         DruidXADataSource  dataSource = new DruidXADataSource();
-        dataSource.setDriverClassName(dsOneProperties.getUsername());
+        dataSource.setDriverClassName(dsOneProperties.getDriverClassName());
         dataSource.setUrl(dsOneProperties.getUrl());
         dataSource.setUsername(dsOneProperties.getUsername());
         dataSource.setPassword(dsOneProperties.getPassword());
@@ -49,7 +52,7 @@ public class DbConfiguration {
 
     // 数据源dsTwo
     @Bean
-    @ConfigurationProperties(prefix = "spring.ds-two")
+    @ConfigurationProperties(prefix = "spring.datasource.druid.ds-two")
     public DataSourceProperties dsTwoProperties() {
         return new DataSourceProperties();
     }
@@ -61,7 +64,7 @@ public class DbConfiguration {
 
         // druid连接池数据源
         DruidXADataSource  dataSource = new DruidXADataSource();
-        dataSource.setDriverClassName(dsTwoProperties.getUsername());
+        dataSource.setDriverClassName(dsTwoProperties.getDriverClassName());
         dataSource.setUrl(dsTwoProperties.getUrl());
         dataSource.setUsername(dsTwoProperties.getUsername());
         dataSource.setPassword(dsTwoProperties.getPassword());

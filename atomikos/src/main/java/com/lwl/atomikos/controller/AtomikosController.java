@@ -24,4 +24,10 @@ public class AtomikosController {
         atomikosService.insertTwo();
         return 1;
     }
+
+    @GetMapping("/insert/all")
+    public Integer insertAll() {
+        atomikosService.insertAll();
+        return 1;
+    }
 }

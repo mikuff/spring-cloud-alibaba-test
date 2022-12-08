@@ -5,6 +5,7 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
@@ -31,6 +32,7 @@ public class AtomikosConfig {
 
     @Bean(name = "transactionManager")
     @DependsOn({"userTransaction", "atomikosTransactionManager"})
+    @Primary
     public PlatformTransactionManager transactionManager() throws Throwable {
         UserTransaction userTransaction = userTransaction();
         TransactionManager atomikosTransactionManager = atomikosTransactionManager();

@@ -32,15 +32,15 @@ mybatis-plus:
 
 logging:
   level:
-    com.lwl.chaintx.mapper: TRACE
-    com.atomikos: INFO
-    org.springframework.transaction: TRACE
-    org.springframework.jdbc: TRACE
-    org.springframework.amqp: DEBUG
-    javax.transaction: TRACE
-    com.mysql.jdbc: TRACE
-    org.apache.ibatis: TRACE
-    com.rabbitmq: DEBUG
+    com.lwl.atomikos.mapper: ERROR
+    com.atomikos: DEBUG
+    org.springframework.transaction: ERROR
+    org.springframework.jdbc: ERROR
+    org.springframework.amqp: ERROR
+    javax.transaction: ERROR
+    com.mysql.jdbc: ERROR
+    org.apache.ibatis: ERROR
+    com.rabbitmq: ERROR
 
 product-service:
   ribbon:
