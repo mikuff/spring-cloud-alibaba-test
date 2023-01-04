@@ -1,0 +1,17 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: tencent.ecs:28848
+      config:
+        server-addr: tencent.ecs:28848
+        file-extension: yml
+        group: DEFAULT_GROUP
+        shared-configs:
+          - data-id: base-sentinel.yml
+            group: DEV

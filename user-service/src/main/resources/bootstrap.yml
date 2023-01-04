@@ -1,0 +1,21 @@
+server:
+  port: 8002
+
+spring:
+  application:
+    name: user-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: tencent.ecs:28848
+      config:
+        server-addr: tencent.ecs:28848
+        file-extension: yml
+        group: DEFAULT_GROUP
+        shared-configs:
+          - data-id: base-mysql.yml
+            group: DEV
+          - data-id: base-rabbitmq.yml
+            group: DEV
+          - data-id: base-sentinel.yml
+            group: DEV

@@ -4,7 +4,7 @@
 .\startup.cmd -m standalone
 
 # sentinal
-java -Dserver.port=8070 -Dcsp.sentinel.dashboard.server=localhost:8070 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard-1.8.4.jar
+java -Dserver.port=8070 -Dcsp.sentinel.dashboard.server=tencent.ecs:28070 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard-1.8.4.jar
 ```
 
 ## 创建订单

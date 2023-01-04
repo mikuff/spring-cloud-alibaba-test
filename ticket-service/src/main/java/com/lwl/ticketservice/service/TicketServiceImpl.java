@@ -43,16 +43,25 @@ public class TicketServiceImpl implements TicketService {
             orderContextDTO.setStatus(OrderCreateMessageEnum.TICKET_LOCKED.getCode());
 
             // 发送消息到创建订单队列
-            MessageProperties properties = new MessageProperties();
-            properties.setContentType(Constant.APPLICATION_JSON);
-
-            String messageBody = JSON.toJSONString(orderContextDTO);
-            Message message = new Message(messageBody.getBytes(), properties);
-            rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_LOCKED_ROUTING_KEY, message);
+            sendMessage(orderContextDTO, Constant.ORDER_LOCKED_ROUTING_KEY);
             return;
         }
 
-        // TODO 处理锁票失败
+        // 发送到 order_finished
+        orderContextDTO.setStatus(OrderCreateMessageEnum.TICKET_LOCKED_FAIL.getCode());
+        sendMessage(orderContextDTO, Constant.ORDER_FINISH_ROUTING_KEY);
+    }
+
+    @RabbitHandler
+    @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(value = Constant.CREATE_ORDER_EXCHANGE), value = @Queue(value = Constant.ORDER_UNLOCK_QUEUE, durable = "true"), key = Constant.ORDER_UNLOCK_ROUTING_KEY))
+    @Transactional(transactionManager = "rabbitAndDbTransactionManager")
+    public void handleTicketUnlock(OrderContextDTO orderContextDTO) {
+        log.info("解锁票消息:{}", orderContextDTO);
+        // 锁票
+        Integer lock = ticketMapper.unlockTicket(orderContextDTO.getConsumerId(), orderContextDTO.getTicketNum());
+        if (lock != 1) {
+            log.error("解锁票失败, ticketNum: {}", orderContextDTO.getTicketNum());
+        }
     }
 
     @RabbitHandler
@@ -67,12 +76,7 @@ public class TicketServiceImpl implements TicketService {
         orderContextDTO.setStatus(OrderCreateMessageEnum.TICKET_MOVED.getCode());
 
         // 发送消息到订单结束队列
-        MessageProperties properties = new MessageProperties();
-        properties.setContentType(Constant.APPLICATION_JSON);
-
-        String messageBody = JSON.toJSONString(orderContextDTO);
-        Message message = new Message(messageBody.getBytes(), properties);
-        rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_FINISH_ROUTING_KEY, message);
+        sendMessage(orderContextDTO, Constant.ORDER_FINISH_ROUTING_KEY);
     }
 
 
@@ -101,4 +105,15 @@ public class TicketServiceImpl implements TicketService {
     private TicketEntity selectByTicketNum(Long ticketNum) {
         return ticketMapper.selectOne(new QueryWrapper<TicketEntity>().eq("ticket_num", ticketNum));
     }
+
+
+    private void sendMessage(OrderContextDTO orderContextDTO, String routingKey) {
+        MessageProperties properties = new MessageProperties();
+        properties.setContentType(Constant.APPLICATION_JSON);
+
+        String messageBody = JSON.toJSONString(orderContextDTO);
+        Message message = new Message(messageBody.getBytes(), properties);
+        rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, routingKey, message);
+    }
+
 }

@@ -1,0 +1,5 @@
+FROM java:8-alpine
+MAINTAINER liweilong<2330016764@qq.com>
+ADD target/broadu-gateway-0.0.1-SNAPSHOT.jar broadu-gateway-0.0.1-SNAPSHOT.jar
+EXPOSE 8000
+ENTRYPOINT ["java","-jar","broadu-gateway-0.0.1-SNAPSHOT.jar"]

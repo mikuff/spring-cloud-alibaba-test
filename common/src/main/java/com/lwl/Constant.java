@@ -9,6 +9,10 @@ public interface Constant {
     String ORDER_LOCKED_QUEUE = "order_locked";
     String ORDER_LOCKED_ROUTING_KEY = "order_locked";
 
+    String ORDER_UNLOCK_QUEUE = "order_unlock";
+    String ORDER_UNLOCK_ROUTING_KEY = "order_unlock";
+
+
     String ORDER_PAY_ROUTING_KEY = "order_pay";
     String ORDER_PAY_QUEUE = "order_pay";
 

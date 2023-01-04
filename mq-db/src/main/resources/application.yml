@@ -7,10 +7,10 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: tencent.ecs:28848
   sentinel:
     transport:
-      dashboard: localhost:8070
+      dashboard: tencent.ecs:28070
       port: 9999
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
@@ -18,7 +18,7 @@ spring:
     password: 123
     url: jdbc:mysql://192.168.111.10:3306/test_tx
   rabbitmq:
-    host: 192.168.111.15
+    host: tencent.ecs
     port: 5672
     username: admin
     password: admin
