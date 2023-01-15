@@ -8,6 +8,7 @@ import lombok.Getter;
 public enum PayInfoStatusEnum {
 
     PAID(1),
+    NOT_PAID(0),
     ;
     private Integer code;
 }

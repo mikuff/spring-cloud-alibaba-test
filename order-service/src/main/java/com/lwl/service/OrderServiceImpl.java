@@ -6,10 +6,10 @@ import com.lwl.Constant;
 import com.lwl.anno.RabbitExecutorErrorRouting;
 import com.lwl.dto.OrderContextDTO;
 import com.lwl.dto.OrderCreateDTO;
+import com.lwl.entity.OrderEntity;
 import com.lwl.enums.OrderCreateMessageEnum;
 import com.lwl.enums.OrderStatusEnum;
 import com.lwl.mapper.OrderMapper;
-import com.lwl.entity.OrderEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -46,20 +46,18 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(transactionManager = "rabbitTransactionManager")
-    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE,routingKey = Constant.EXEC_ERROR_QUEUE,desc = "提交索票操作")
+    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE, routingKey = Constant.EXEC_ERROR_QUEUE, desc = "提交索票操作")
     public void createOrder(OrderCreateDTO orderCreateDTO) {
         orderCreateDTO.setUuid(UUID.randomUUID().toString());
         // 提交锁票消息
         String message = JSON.toJSONString(orderCreateDTO);
-        MessageProperties properties = new MessageProperties();
-        properties.setContentType(Constant.APPLICATION_JSON);
-        rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_NEW_ROUTING_KEY, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
+        sendMessage(message, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_NEW_ROUTING_KEY);
     }
 
     @RabbitHandler
     @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(value = Constant.CREATE_ORDER_EXCHANGE), value = @Queue(value = Constant.ORDER_LOCKED_QUEUE, durable = "true"), key = Constant.ORDER_LOCKED_ROUTING_KEY))
     @Transactional(transactionManager = "rabbitAndDbTransactionManager")
-    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE,routingKey = Constant.EXEC_ERROR_QUEUE,desc = "创建订单操作")
+    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE, routingKey = Constant.EXEC_ERROR_QUEUE, desc = "创建订单操作")
     public void handleOrderCreate(OrderContextDTO orderContextDTO) {
         log.info("创建订单消息:{}", orderContextDTO);
 
@@ -79,17 +77,14 @@ public class OrderServiceImpl implements OrderService {
         orderContextDTO.setStatus(OrderCreateMessageEnum.ORDER_NEW.getCode());
 
         // 发送消息到待缴费队列
-        String message = JSON.toJSONString(orderContextDTO);
-        MessageProperties properties = new MessageProperties();
-        properties.setContentType(Constant.APPLICATION_JSON);
-        rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_PAY_ROUTING_KEY, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
+        sendMessage(orderContextDTO, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_PAY_ROUTING_KEY);
     }
 
 
     @RabbitHandler
     @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(value = Constant.CREATE_ORDER_EXCHANGE), value = @Queue(value = Constant.ORDER_FINISH_QUEUE, durable = "true"), key = Constant.ORDER_FINISH_ROUTING_KEY))
     @Transactional(transactionManager = "rabbitAndDbTransactionManager")
-    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE,routingKey = Constant.EXEC_ERROR_QUEUE,desc = "正常订单结束操作")
+    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE, routingKey = Constant.EXEC_ERROR_QUEUE, desc = "正常订单结束操作")
     public void handleOrderFinish(OrderContextDTO orderContextDTO) {
         // 正常消息
         log.info("正常结束订单消息:{}", orderContextDTO);
@@ -102,27 +97,39 @@ public class OrderServiceImpl implements OrderService {
     @RabbitHandler
     @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(value = Constant.CREATE_ORDER_EXCHANGE), value = @Queue(value = Constant.ORDER_FAIL_QUEUE, durable = "true"), key = Constant.ORDER_FAIL_ROUTING_KEY))
     @Transactional(transactionManager = "rabbitAndDbTransactionManager")
-    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE,routingKey = Constant.EXEC_ERROR_QUEUE,desc = "异常订单处理操作")
+    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE, routingKey = Constant.EXEC_ERROR_QUEUE, desc = "异常订单处理操作")
     public void handleOrderFail(OrderContextDTO orderContextDTO) {
         // 异常结束订单消息
         log.info("异常结束订单消息:{}", orderContextDTO);
 
         if (OrderCreateMessageEnum.TICKET_LOCKED_FAIL.getCode().equals(orderContextDTO.getStatus())) {
             // 索票失败,回滚索票
-            log.info("异常结束订单消息:{}", orderContextDTO);
+            log.info("索票失败消息:{}", orderContextDTO);
             OrderEntity orderEntity = crateOrderEntity(orderContextDTO);
             orderEntity.setStatus(OrderStatusEnum.ERROR.getCode());
             orderEntity.setReason(String.valueOf(orderContextDTO.getStatus()));
             orderMapper.insert(orderEntity);
 
             // 回滚索票
-            String message = JSON.toJSONString(orderContextDTO);
-            MessageProperties properties = new MessageProperties();
-            properties.setContentType(Constant.APPLICATION_JSON);
-            rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_UNLOCK_ROUTING_KEY, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
+            sendMessage(orderContextDTO, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_UNLOCK_ROUTING_KEY);
             return;
         }
 
+        if (OrderCreateMessageEnum.AMOUNT_NOT_ENOUGH.getCode().equals(orderContextDTO.getStatus())) {
+            // 余额不足，订单失败，回滚索票
+            log.info("索票失败消息:{}", orderContextDTO);
+            OrderEntity orderEntity = crateOrderEntity(orderContextDTO);
+            orderEntity.setId(orderContextDTO.getOrderId());
+            orderEntity.setStatus(OrderStatusEnum.ERROR.getCode());
+            orderEntity.setReason(String.valueOf(orderContextDTO.getStatus()));
+            orderMapper.updateById(orderEntity);
+
+            // 回滚索票
+            sendMessage(orderContextDTO, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_UNLOCK_ROUTING_KEY);
+            return;
+        }
+
+        // 最终异常,无法进行处理
         log.error("无法处理异常消息:{}", orderContextDTO);
     }
 
@@ -136,6 +143,40 @@ public class OrderServiceImpl implements OrderService {
         ret.setStatus(OrderStatusEnum.CREATE.getCode());
         ret.setCreateDate(new Date());
         return ret;
+    }
+
+    /**
+     * @Author lwl
+     * @Description 发送消息
+     * @Param orderContextDTO 消息对象
+     * @Param exchange 交换机名称
+     * @Param routingKey 路由key
+     * @Return void
+     * @Date 2023/1/15 13:09
+     * @Version 1.0
+     */
+    public void sendMessage(OrderContextDTO orderContextDTO, String exchange, String routingKey) {
+        String message = JSON.toJSONString(orderContextDTO);
+        MessageProperties properties = new MessageProperties();
+        properties.setContentType(Constant.APPLICATION_JSON);
+        rabbitTemplate.send(exchange, routingKey, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
+    }
+
+
+    /**
+     * @Author lwl
+     * @Description 发送消息
+     * @Param message: 消息内容
+     * @Param exchange: 交换机名称
+     * @Param routingKey: 路由key
+     * @Return void
+     * @Date 2023/1/15 13:12
+     * @Version 1.0
+     */
+    public void sendMessage(String message, String exchange, String routingKey) {
+        MessageProperties properties = new MessageProperties();
+        properties.setContentType(Constant.APPLICATION_JSON);
+        rabbitTemplate.send(exchange, routingKey, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
     }
 
 }

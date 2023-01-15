@@ -39,7 +39,7 @@ public class ConsumerServiceImpl implements ConsumerService {
     @RabbitHandler
     @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(value = Constant.CREATE_ORDER_EXCHANGE), value = @Queue(value = Constant.ORDER_PAY_QUEUE, durable = "true"), key = Constant.ORDER_PAY_ROUTING_KEY))
     @Transactional(transactionManager = "rabbitAndDbTransactionManager")
-    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE,routingKey = Constant.EXEC_ERROR_QUEUE,desc = "订单支付操作")
+    @RabbitExecutorErrorRouting(exchange = Constant.EXEC_ERROR_EXCHANGE, routingKey = Constant.EXEC_ERROR_QUEUE, desc = "订单支付操作")
     public void handleOrderPay(OrderContextDTO orderContextDTO) {
         log.info("支付消息:{}", orderContextDTO);
 
@@ -52,8 +52,13 @@ public class ConsumerServiceImpl implements ConsumerService {
             boolean isEnough = checkDepositByConsumerId(orderContextDTO.getConsumerId(), orderContextDTO.getAmount());
             if (!isEnough) {
                 log.warn("支付操作余额不足,订单ID:{}", orderContextDTO.getOrderId());
+
+                // 如果余额不足，则订单失败，释放票
+                orderContextDTO.setStatus(OrderCreateMessageEnum.AMOUNT_NOT_ENOUGH.getCode());
+                sendMessage(orderContextDTO, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_FAIL_ROUTING_KEY);
                 return;
             }
+
             // 存储支付记录
             PayInfoEntity payInfoEntity = new PayInfoEntity();
             payInfoEntity.setOrderId(orderContextDTO.getOrderId());
@@ -67,11 +72,27 @@ public class ConsumerServiceImpl implements ConsumerService {
 
         // 无论有没有支付过都发送到交票队列
         orderContextDTO.setStatus(OrderCreateMessageEnum.ORDER_PAID.getCode());
+        sendMessage(orderContextDTO, Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_TICKET_MOVE_ROUTING_KEY);
+    }
+
+
+    /**
+     * @Author lwl
+     * @Description 发送消息
+     * @Param orderContextDTO 消息对象
+     * @Param exchange 交换机名称
+     * @Param routingKey 路由key
+     * @Return void
+     * @Date 2023/1/15 13:09
+     * @Version 1.0
+     */
+    public void sendMessage(OrderContextDTO orderContextDTO, String exchange, String routingKey) {
         String message = JSON.toJSONString(orderContextDTO);
         MessageProperties properties = new MessageProperties();
         properties.setContentType(Constant.APPLICATION_JSON);
-        rabbitTemplate.send(Constant.CREATE_ORDER_EXCHANGE, Constant.ORDER_TICKET_MOVE_ROUTING_KEY, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
+        rabbitTemplate.send(exchange, routingKey, new Message(message.getBytes(StandardCharsets.UTF_8), properties));
     }
+
 
     private boolean checkDepositByConsumerId(Long consumerId, Long amount) {
         ConsumerEntity entity = consumerMapper.selectOne(new QueryWrapper<ConsumerEntity>().eq("id", consumerId));

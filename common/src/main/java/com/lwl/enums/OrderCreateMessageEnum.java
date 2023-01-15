@@ -10,7 +10,6 @@ import java.util.Objects;
 @AllArgsConstructor
 public enum OrderCreateMessageEnum {
 
-
     TICKET_LOCKED(0, null),
 
     ORDER_NEW(10, null),
@@ -20,13 +19,15 @@ public enum OrderCreateMessageEnum {
     TICKET_MOVED(30, null),
 
     TICKET_LOCKED_FAIL(1000, "索票失败"),
-    ;
+    AMOUNT_NOT_ENOUGH(2000, "余额不足"),;
+
     private Integer code;
     private String message;
 
 
     /**
      * 通过code获取具体的错误信息
+     *
      * @param code
      * @return
      */
